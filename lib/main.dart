@@ -4,6 +4,9 @@ import './widgets/new_transaction.dart';
 import './widgets/transaction_list.dart';
 import './widgets/chart_pie.dart';
 import './models/transaction.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
+
 
 void main() => runApp(MyApp());
 
@@ -18,7 +21,7 @@ class MyApp extends StatelessWidget {
           // errorColor: Colors.red,
           fontFamily: 'Quicksand',
           textTheme: ThemeData.light().textTheme.copyWith(
-                title: TextStyle(
+            headline6: TextStyle(
                   fontFamily: 'OpenSans',
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -27,7 +30,7 @@ class MyApp extends StatelessWidget {
               ),
           appBarTheme: AppBarTheme(
             textTheme: ThemeData.light().textTheme.copyWith(
-                  title: TextStyle(
+              headline6: TextStyle(
                     fontFamily: 'OpenSans',
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -47,6 +50,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const platform = const MethodChannel('samples.flutter.dev/rootstatus');
+  String _rootStatus = "";
   final List<Transaction> _userTransactions = [
     // Transaction(
     //   id: 't1',
@@ -61,6 +66,24 @@ class _MyHomePageState extends State<MyHomePage> {
     //   date: DateTime.now(),
     // ),
   ];
+  Future<void> _getRootStatus() async {
+    int rootStatus;
+    try {
+      final result = await platform.invokeMethod('getRootStatus');
+      rootStatus = result;
+      setState(() {
+        if(rootStatus==1) {
+          _rootStatus = "Device is rooted";
+        }else if(rootStatus==0){
+          _rootStatus = "Device is not rooted";
+        }
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        _rootStatus = "Root Status not found";
+      });
+    }
+  }
 
   List<Transaction> get _recentTransactions {
     return _userTransactions.where((tx) {
@@ -104,6 +127,12 @@ class _MyHomePageState extends State<MyHomePage> {
       _userTransactions.removeWhere((tx) => tx.id == id);
     });
   }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getRootStatus();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +146,14 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: Icon(Icons.add),
             onPressed: () => _startAddNewTransaction(context),
           ),
+          RaisedButton(
+            child: Text('Get root status'),
+            onPressed: () {
+                _getRootStatus();
+                showAlertDialog(context,_rootStatus);
+            }
+          ),
+          //Text(_rootStatus),
         ],
       ),
       body: SingleChildScrollView(
@@ -137,4 +174,30 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+
+showAlertDialog(BuildContext context,String rootStatus){
+
+    // set up the button
+//    Widget okButton = FlatButton(
+//      child: Text("OK"),
+//      onPressed: () { },
+//    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text(rootStatus),
+      //content: Text(rootStatus),
+//      actions: [
+//        okButton,
+//      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
 }
